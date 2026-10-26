@@ -1,0 +1,9 @@
+# Python virtual environment (large, and can be recreated on any computer)
+.venv/
+
+# PyCharm's personal settings for this computer only
+.idea/
+
+# Temporary files Python creates automatically when code runs
+__pycache__/
+*.pyc
