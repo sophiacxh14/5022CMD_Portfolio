@@ -101,6 +101,29 @@ class HashTable:
         return first_tombstone
 
     # ------------------------------------------------------------------
+    # SEARCH
+    # ------------------------------------------------------------------
+    def search(self, key: Any) -> Any:
+        """Return the value stored with this key, or None if the key is not found."""
+        index = self._hash(key)                      # start at the key's home slot
+
+        for _ in range(self._capacity):
+            slot = self._slots[index]
+
+            if slot is None:
+                return None                          # empty slot: key does not exist
+            if slot is not self._DELETED and slot.key == key:
+                return slot.value                    # found it
+
+            index = (index + 1) % self._capacity     # tombstone or other key: keep probing
+
+        return None                                  # every slot checked: not found
+
+    def __contains__(self, key: Any) -> bool:
+        """Allow 'key in table' to check whether a key exists."""
+        return self.search(key) is not None
+
+    # ------------------------------------------------------------------
     # RESIZING (private helpers)
     # ------------------------------------------------------------------
     def _resize(self) -> None:
@@ -155,16 +178,11 @@ class HashTable:
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     table = HashTable()
+    table.insert(1042, "Paracetamol 500mg")   # home slot 8
+    table.insert(2032, "Ibuprofen 200mg")     # also wants slot 8, probed to slot 9
 
-    print("1042 went into slot", table.insert(1042, "Paracetamol"))
-    print("2032 went into slot", table.insert(2032, "Ibuprofen"))       # collides with 1042
-    print("1042 went into slot", table.insert(1042, "Paracetamol 650mg"))  # same key: update
-    print(f"Items: {len(table)} | Capacity: {table.capacity} | "
-          f"Load factor: {table.load_factor:.2f}")
-    print(table)
-
-    # Add 7 more entries to push the table past 70% full
-    for product_id in range(3001, 3008):
-        table.insert(product_id, "Test product")
-    print(f"\nAfter 9 items -> Items: {len(table)} | Capacity: {table.capacity} | "
-          f"Load factor: {table.load_factor:.2f}")
+    print("Search 1042:", table.search(1042))   # found in its home slot
+    print("Search 2032:", table.search(2032))   # found after probing 1 step
+    print("Search 1053:", table.search(1053))   # wants slot 8 too, but does not exist
+    print("Is 2032 in the table?", 2032 in table)
+    print("Is 1053 in the table?", 1053 in table)
