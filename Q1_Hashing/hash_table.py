@@ -101,27 +101,49 @@ class HashTable:
         return first_tombstone
 
     # ------------------------------------------------------------------
-    # SEARCH
+    # SEARCH AND DELETE
     # ------------------------------------------------------------------
-    def search(self, key: Any) -> Any:
-        """Return the value stored with this key, or None if the key is not found."""
-        index = self._hash(key)                      # start at the key's home slot
+    def _find_index(self, key: Any) -> int | None:
+        """
+        Follow the probing path for this key.
+        Return the slot index holding the key, or None if the key is not stored.
+        Shared by search() and delete() so the probing logic is written once.
+        """
+        index = self._hash(key)  # start at the key's home slot
 
         for _ in range(self._capacity):
             slot = self._slots[index]
 
             if slot is None:
-                return None                          # empty slot: key does not exist
+                return None  # empty slot: key does not exist
             if slot is not self._DELETED and slot.key == key:
-                return slot.value                    # found it
+                return index  # found it
 
-            index = (index + 1) % self._capacity     # tombstone or other key: keep probing
+            index = (index + 1) % self._capacity  # tombstone or other key: keep probing
 
-        return None                                  # every slot checked: not found
+        return None  # every slot checked: not found
+
+    def search(self, key: Any) -> Any:
+        """Return the value stored with this key, or None if the key is not found."""
+        index = self._find_index(key)
+        if index is None:
+            return None
+        return self._slots[index].value
 
     def __contains__(self, key: Any) -> bool:
         """Allow 'key in table' to check whether a key exists."""
-        return self.search(key) is not None
+        return self._find_index(key) is not None
+
+    def delete(self, key: Any) -> Any:
+        """Remove the entry with this key and return its value, or None if not found."""
+        index = self._find_index(key)
+        if index is None:
+            return None
+
+        removed_value = self._slots[index].value
+        self._slots[index] = self._DELETED  # leave a tombstone, NOT None
+        self._size -= 1
+        return removed_value
 
     # ------------------------------------------------------------------
     # RESIZING (private helpers)
@@ -181,8 +203,9 @@ if __name__ == "__main__":
     table.insert(1042, "Paracetamol 500mg")   # home slot 8
     table.insert(2032, "Ibuprofen 200mg")     # also wants slot 8, probed to slot 9
 
-    print("Search 1042:", table.search(1042))   # found in its home slot
-    print("Search 2032:", table.search(2032))   # found after probing 1 step
-    print("Search 1053:", table.search(1053))   # wants slot 8 too, but does not exist
-    print("Is 2032 in the table?", 2032 in table)
-    print("Is 1053 in the table?", 1053 in table)
+    print("Deleted:", table.delete(1042))     # slot 8 becomes a tombstone
+    print(table)
+    print("Search 2032 after deleting 1042:", table.search(2032))   # must still be found
+    print("Delete 1042 again:", table.delete(1042))                 # already gone
+    print("Re-inserted 1042 into slot", table.insert(1042, "Paracetamol 500mg"))  # reuses tombstone
+    print("Items stored:", len(table))
