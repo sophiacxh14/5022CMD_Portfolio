@@ -6,7 +6,7 @@ to resolve collisions. It stores key -> value pairs and knows nothing
 about medicines, so it can be reused for any kind of data.
 """
 
-from typing import Any
+from typing import Any, Iterator
 
 
 class HashEntry:
@@ -96,6 +96,10 @@ class HashTable:
 
         # Every slot was visited without finding an empty one,
         # so the new entry goes into the first tombstone found
+        if first_tombstone is None:
+            # Safety check: resizing keeps the table below 70% full,
+            # so this should never happen
+            raise RuntimeError("Hash table is unexpectedly full.")
         self._slots[first_tombstone] = HashEntry(key, value)
         self._size += 1
         return first_tombstone
@@ -181,6 +185,12 @@ class HashTable:
     # ------------------------------------------------------------------
     # DISPLAY
     # ------------------------------------------------------------------
+    def items(self) -> Iterator[tuple[Any, Any]]:
+        """Give back every stored (key, value) pair, one at a time, in slot order."""
+        for slot in self._slots:
+            if isinstance(slot, HashEntry):  # skip empty slots and tombstones
+                yield slot.key, slot.value
+
     def __str__(self) -> str:
         """Show the contents of every slot, so the effect of probing is visible."""
         lines = []
@@ -194,18 +204,17 @@ class HashTable:
             lines.append(f"[{index:>3}] {content}")
         return "\n".join(lines)
 
-
 # ---------------------------------------------------------------------------
 # Quick test: only runs when this file is run directly
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     table = HashTable()
-    table.insert(1042, "Paracetamol 500mg")   # home slot 8
-    table.insert(2032, "Ibuprofen 200mg")     # also wants slot 8, probed to slot 9
+    table.insert(1042, "Paracetamol 500mg")  # home slot 8
+    table.insert(2032, "Ibuprofen 200mg")  # also wants slot 8, probed to slot 9
 
-    print("Deleted:", table.delete(1042))     # slot 8 becomes a tombstone
+    print("Deleted:", table.delete(1042))  # slot 8 becomes a tombstone
     print(table)
-    print("Search 2032 after deleting 1042:", table.search(2032))   # must still be found
-    print("Delete 1042 again:", table.delete(1042))                 # already gone
+    print("Search 2032 after deleting 1042:", table.search(2032))  # must still be found
+    print("Delete 1042 again:", table.delete(1042))  # already gone
     print("Re-inserted 1042 into slot", table.insert(1042, "Paracetamol 500mg"))  # reuses tombstone
     print("Items stored:", len(table))
