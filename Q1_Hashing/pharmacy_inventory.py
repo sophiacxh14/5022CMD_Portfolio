@@ -38,7 +38,7 @@ class Medicine:
 
     def __str__(self):
         """Text shown when a Medicine object is printed."""
-        prescription = "Yes" if self.needs_prescription else "No"
+        prescription = "Yes" if self.needs_prescription else "No"   # turn True/False into Yes/No
         return (f"ID: {self.product_id} | Name: {self.name} | Category: {self.category} | "
                 f"Price: RM{self.price:.2f} | Stock: {self.stock} | Prescription: {prescription}")
 
@@ -58,7 +58,7 @@ class HashEntry:
 class HashTable:
     """Hash table using open addressing with linear probing."""
 
-    DELETED = "DELETED"                    # marker ("tombstone") left in a slot after a delete
+    DELETED = "DELETED"  # marker ("tombstone") left in a slot when its entry is deleted
 
     def __init__(self, capacity=11, max_load_factor=0.7):
         self.capacity = capacity                 # total number of slots (11 is a prime number)
@@ -66,11 +66,11 @@ class HashTable:
         self.size = 0                            # number of entries stored
         # Each slot holds one of: None (empty), a HashEntry (occupied),
         # or DELETED (an entry used to be here)
-        self.slots = [None] * capacity
+        self.slots: list = [None] * capacity
 
     def hash_function(self, key):
         """Turn a key into a starting slot number from 0 to capacity - 1."""
-        return hash(key) % self.capacity
+        return hash(key) % self.capacity   # for whole numbers hash() returns the number itself, e.g. 1042 % 23 = 7
 
     def load_factor(self):
         """How full the table is (0.0 = empty, 1.0 = full)."""
@@ -84,9 +84,10 @@ class HashTable:
             self.resize()
 
         index = self.hash_function(key)
+        # If we pass a deleted slot, remember it in case the key is not found later.
         first_deleted = -1                 # first DELETED slot passed (-1 = none yet)
 
-        for step in range(self.capacity):  # check each slot at most once
+        for step in range(self.capacity):  # check each slot at most once (so the loop can never run forever)
             slot = self.slots[index]
             if slot is None:               # empty slot: the key is not in the table
                 break
@@ -97,6 +98,7 @@ class HashTable:
                 slot.value = value
                 return index
             index = (index + 1) % self.capacity   # LINEAR PROBING: try the next slot
+            # Modulo wraps the index back to 0 when it reaches the end of the table.
 
         if first_deleted != -1:            # reuse a DELETED slot if one was passed
             index = first_deleted
@@ -130,12 +132,14 @@ class HashTable:
             return None
         removed_value = self.slots[index].value
         self.slots[index] = self.DELETED        # leave a marker, NOT None, so probing still works
+        # Keeping the marker prevents a search from stopping too early in a collision chain.
         self.size -= 1
         return removed_value
 
     def resize(self):
         """Move every entry into a bigger table (the next prime above double the size)."""
         old_slots = self.slots
+        # Create a larger table; entries must be inserted again because their slot indexes change.
         self.capacity = next_prime(self.capacity * 2)
         self.slots = [None] * self.capacity
         self.size = 0
@@ -161,14 +165,14 @@ class HashTable:
                 content = "<deleted>"
             else:
                 content = f"key {slot.key}"
-            print(f"  [{index:>3}] {content}")
+            print(f"  [{index:>3}] {content}")      # >3 right-aligns the slot number in 3 spaces
 
 
 def is_prime(number):
     """Return True if the number is prime."""
     if number < 2:
         return False
-    for divisor in range(2, int(number ** 0.5) + 1):
+    for divisor in range(2, int(number ** 0.5) + 1):   # only need to test divisors up to the square root
         if number % divisor == 0:
             return False
     return True
@@ -216,6 +220,7 @@ def load_sample_data(table, array):
         Medicine(6034, "Hydrocortisone Cream 1%",       "Skin Care",      11.20,  40),
     ]
     for medicine in medicines:
+        # Store the same Medicine object in both structures for a fair comparison.
         table.insert(medicine.product_id, medicine)
         array.append(medicine)
 
@@ -226,7 +231,7 @@ def load_sample_data(table, array):
 def read_int(prompt, minimum=0):
     while True:
         text = input(prompt).strip()
-        if text.isdigit() and int(text) >= minimum:
+        if text.isdigit() and int(text) >= minimum:   # isdigit() is False for letters, symbols and "-" signs
             return int(text)
         print(f"  Please enter a whole number of at least {minimum}.")
 
@@ -237,7 +242,7 @@ def read_float(prompt, minimum=0.0):
         try:
             value = float(text)
             if value >= minimum:
-                return round(value, 2)
+                return round(value, 2)     # keep 2 decimal places for Ringgit
         except ValueError:
             pass                           # not a number: show the message below
         print(f"  Please enter a number of at least {minimum:.2f}, e.g. 5.90")
@@ -253,7 +258,7 @@ def read_text(prompt):
 
 def read_yes_no(prompt):
     while True:
-        answer = input(prompt).strip().lower()
+        answer = input(prompt).strip().lower()     # lower() lets "Y" and "y" both work
         if answer in ("y", "yes"):
             return True
         if answer in ("n", "no"):
@@ -267,7 +272,7 @@ def read_yes_no(prompt):
 def insert_product(table, array):
     print("\n--- Insert Product ---")
     product_id = read_int("Enter Product ID: ", minimum=1)
-    if table.search(product_id) is not None:
+    if table.search(product_id) is not None:       # reject duplicate IDs before asking for other details
         print(f"  Product ID {product_id} already exists. Use Edit to change it.")
         return
 
@@ -278,7 +283,7 @@ def insert_product(table, array):
     needs_prescription = read_yes_no("Requires prescription? (y/n): ")
     medicine = Medicine(product_id, name, category, price, stock, needs_prescription)
 
-    old_capacity = table.capacity
+    old_capacity = table.capacity                  # remembered so we can tell the user if the table grew
     slot = table.insert(product_id, medicine)
     array.append(medicine)
     print(f"  Product inserted successfully into slot [{slot}].")
@@ -291,7 +296,7 @@ def search_product(table, array):
     print("\n--- Search Product ---")
     product_id = read_int("Enter Product ID to search: ", minimum=1)
 
-    start = time.perf_counter_ns()
+    start = time.perf_counter_ns()                 # high-precision timer in nanoseconds
     medicine = table.search(product_id)
     table_time = time.perf_counter_ns() - start
 
@@ -317,6 +322,7 @@ def edit_product(table):
         return
 
     print(f"  Current: {medicine}")
+    # The product ID cannot be edited: it is the hash key that decides which slot the product is in
     print("  1. Name  2. Category  3. Price  4. Stock  5. Prescription")
     field = input("  Which field do you want to change? ").strip()
     if field == "1":
@@ -347,7 +353,7 @@ def delete_product(table, array):
     print(f"  {medicine}")
     if read_yes_no("  Are you sure you want to delete this product? (y/n): "):
         table.delete(product_id)
-        array.remove(medicine)
+        array.remove(medicine)             # remove it from the array too, so both hold the same data
         print(f"  '{medicine.name}' deleted successfully.")
     else:
         print("  Delete cancelled.")
@@ -407,17 +413,18 @@ def run_performance_experiment():
             table.insert(product_id, medicine)
             array.append(medicine)
 
-        # Search both structures for the SAME IDs
+        # Search both structures for the SAME IDs so their timings can be compared fairly.
         found_ids = random.choices(product_ids, k=SEARCHES_PER_TEST)      # IDs that exist
         missing_ids = []
         for i in range(SEARCHES_PER_TEST):
             missing_ids.append(MISSING_ID_START + i)                      # IDs that do not exist
 
+        # Measure successful and unsuccessful searches separately.
         for search_type, search_ids in [("Found", found_ids), ("Not found", missing_ids)]:
             table_ns = time_hash_table(table, search_ids)
             array_ns = time_array(array, search_ids)
             print(f"{size:>8,} | {search_type:<12} | {table_ns:>9,.0f} ns | "
-                  f"{array_ns:>11,.0f} ns | {array_ns / table_ns:,.1f}x faster")
+                  f"{array_ns:>11,.0f} ns | {array_ns / table_ns:,.1f}x faster")   # array time / table time
         print("-" * 70)
 
 
@@ -463,5 +470,6 @@ def main():
             print("  Invalid choice. Please enter a number from the menu.")
 
 
+# Run the menu only when this file is executed directly, not when it is imported.
 if __name__ == "__main__":
     main()
