@@ -304,17 +304,20 @@ def add_prerequisite(graph):
     if prerequisite is None:
         return
 
+    course_code = course.code
+    prerequisite_code = prerequisite.code
+
     if prerequisite == course:
         print("  A course cannot be a prerequisite of itself.")
     elif graph.has_edge(prerequisite, course):
-        print(f"  {prerequisite.code} is already a prerequisite of {course.code}.")
+        print(f"  {prerequisite_code} is already a prerequisite of {course_code}.")
     elif graph.has_path(course, prerequisite):
         # course already leads to prerequisite, so an edge back would create a loop
-        print(f"  Not allowed: {prerequisite.code} already depends on {course.code}, "
+        print(f"  Not allowed: {prerequisite_code} already depends on {course_code}, "
               f"so this would create a prerequisite loop.")
     else:
-        graph.add_edge(prerequisite, course)     # new edge FROM prerequisite TO course
-        print(f"  {prerequisite.code} is now a prerequisite of {course.code}.")
+        graph.add_edge(prerequisite, course)  # new edge FROM prerequisite TO course
+        print(f"  {prerequisite_code} is now a prerequisite of {course_code}.")
 
 
 def remove_prerequisite(graph):
