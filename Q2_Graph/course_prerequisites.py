@@ -74,20 +74,76 @@ class Graph:
         return incoming
 
 
+# ===========================================================================
+# 2. ENTITY CLASS
+# ===========================================================================
+class Course:
+    """One course offered by the university."""
+
+    def __init__(self, code, name, credit_hours, level, year, description):
+        self.code = code                    # str - unique course code, e.g. "CS201"
+        self.name = name                    # str - e.g. "Data Structures"
+        self.credit_hours = credit_hours    # int - e.g. 4
+        self.level = level                  # str - "Core" or "Elective"
+        self.year = year                    # int - year of study (1 to 3)
+        self.description = description      # str - short summary of the course
+
+    def is_core(self):
+        return self.level == "Core"
+
+    def __str__(self):
+        """Short form used in lists, e.g. 'CS201 - Data Structures'."""
+        return f"{self.code} - {self.name}"
+
+
+# ===========================================================================
+# 3. PRE-DEFINED COURSES AND PREREQUISITES
+# ===========================================================================
+def load_sample_data(graph):
+    """Create 8 courses (vertices) and their prerequisite links (edges)."""
+    cs101 = Course("CS101", "Programming Fundamentals", 4, "Core", 1,
+                   "Basic programming with variables, loops, functions and lists.")
+    cs102 = Course("CS102", "Discrete Mathematics", 3, "Core", 1,
+                   "Logic, sets, counting and graph theory for computing.")
+    cs201 = Course("CS201", "Data Structures", 4, "Core", 2,
+                   "Arrays, linked lists, stacks, queues, trees and hash tables.")
+    cs202 = Course("CS202", "Database Systems", 3, "Core", 2,
+                   "Relational databases, SQL and database design.")
+    cs301 = Course("CS301", "Advanced Algorithms", 4, "Core", 3,
+                   "Algorithm analysis, graphs, hashing and concurrency.")
+    cs302 = Course("CS302", "Software Engineering", 4, "Core", 3,
+                   "Requirements, design, testing and team projects.")
+    cs303 = Course("CS303", "Artificial Intelligence", 3, "Elective", 3,
+                   "Search, knowledge representation and machine learning basics.")
+    cs304 = Course("CS304", "Web Development", 3, "Elective", 3,
+                   "Building dynamic websites with a database back end.")
+
+    for course in [cs101, cs102, cs201, cs202, cs301, cs302, cs303, cs304]:
+        graph.add_vertex(course)
+
+    # Each edge points FROM the prerequisite TO the course it unlocks
+    graph.add_edge(cs101, cs201)
+    graph.add_edge(cs101, cs202)
+    graph.add_edge(cs201, cs301)
+    graph.add_edge(cs102, cs301)
+    graph.add_edge(cs201, cs302)
+    graph.add_edge(cs202, cs302)
+    graph.add_edge(cs301, cs303)
+    graph.add_edge(cs202, cs304)
+
+
 # ---------------------------------------------------------------------------
-# Quick test of the Graph on its own, using simple letters as vertices
+# Quick test: load the courses and show every prerequisite link
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     graph = Graph()
-    for letter in ["A", "B", "C", "D"]:
-        graph.add_vertex(letter)
-    graph.add_edge("A", "C")      # A -> C
-    graph.add_edge("B", "C")      # B -> C
-    graph.add_edge("C", "D")      # C -> D
+    load_sample_data(graph)
 
-    print("Vertices:", graph.get_vertices())
-    print("Incoming to C:", graph.list_incoming_adjacent_vertex("C"))
-    print("Outgoing from C:", graph.list_outgoing_adjacent_vertex("C"))
-    print("Add A -> C again:", graph.add_edge("A", "C"))
-    print("Remove A -> C:", graph.remove_edge("A", "C"))
-    print("Incoming to C now:", graph.list_incoming_adjacent_vertex("C"))
+    print(f"Loaded {graph.vertex_count()} courses:")
+    for course in graph.get_vertices():
+        print(f"  {course} ({course.level}, Year {course.year}, {course.credit_hours} credit hours)")
+
+    print("\nPrerequisite links (prerequisite -> course it unlocks):")
+    for course in graph.get_vertices():
+        for unlocked in graph.list_outgoing_adjacent_vertex(course):
+            print(f"  {course.code} -> {unlocked.code}")
