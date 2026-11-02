@@ -11,6 +11,10 @@ prerequisites in an UNWEIGHTED DIRECTED GRAPH.
 Run this file to start the program.
 """
 
+# ---------------------------------------------------------------------------
+# Settings
+# ---------------------------------------------------------------------------
+MAX_COURSES = 10        # the brief allows a maximum of 10 courses
 
 # ===========================================================================
 # 1. GRAPH (unweighted, directed, stored as an adjacency list)
@@ -131,19 +135,125 @@ def load_sample_data(graph):
     graph.add_edge(cs301, cs303)
     graph.add_edge(cs202, cs304)
 
+# ===========================================================================
+# 4. HELPER FUNCTIONS
+# ===========================================================================
+def find_course(graph, code) -> Course | None:
+    """Return the Course with this code (any letter case), or None if there is none."""
+    for course in graph.get_vertices():
+        if course.code == code.strip().upper():
+            return course
+    return None
 
-# ---------------------------------------------------------------------------
-# Quick test: load the courses and show every prerequisite link
-# ---------------------------------------------------------------------------
-if __name__ == "__main__":
+
+def ask_for_course(graph, prompt) -> Course | None:
+    """Ask for a course code. Returns the Course, or None (with a message) if not found."""
+    code = input(prompt).strip().upper()
+    course = find_course(graph, code)
+    if course is None:
+        print(f"  Course '{code}' not found. Use option 1 to see all course codes.")
+    return course
+
+
+def course_codes(courses):
+    """Turn a list of courses into text such as 'CS201, CS102', or 'None' if empty."""
+    if len(courses) == 0:
+        return "None"
+    codes = []
+    for course in courses:
+        codes.append(course.code)
+    return ", ".join(codes)
+
+
+def print_course_list(title, courses):
+    """Print a heading and one course per line, or 'None' if the list is empty."""
+    print(title)
+    if len(courses) == 0:
+        print("  - None")
+    for course in courses:
+        print(f"  - {course.code} ({course.name})")
+
+
+def print_full_details(graph, course):
+    """Print every attribute of a course, plus its prerequisites and the courses it unlocks."""
+    prerequisites = graph.list_incoming_adjacent_vertex(course)
+    unlocks = graph.list_outgoing_adjacent_vertex(course)
+    print(f"  Course Code   : {course.code}")
+    print(f"  Course Name   : {course.name}")
+    print(f"  Credit Hours  : {course.credit_hours}")
+    print(f"  Level         : {course.level}")
+    print(f"  Year of Study : {course.year}")
+    print(f"  Description   : {course.description}")
+    print(f"  Prerequisites : {course_codes(prerequisites)}")
+    print(f"  Unlocks       : {course_codes(unlocks)}")
+
+
+# ===========================================================================
+# 5. MENU OPTIONS - MANDATORY FEATURES
+# ===========================================================================
+def view_all_courses(graph):
+    print(f"\nAvailable Courses ({graph.vertex_count()} of {MAX_COURSES}):")
+    number = 1
+    for course in graph.get_vertices():
+        print(f"  {number}. {course}")
+        number += 1
+
+
+def view_course_details(graph):
+    print("\n--- View Course Details ---")
+    course = ask_for_course(graph, "Enter Course Code: ")
+    if course is not None:
+        print_full_details(graph, course)       # all information, whatever the level
+
+
+def view_prerequisites(graph):
+    print("\n--- View Prerequisites of a Course ---")
+    course = ask_for_course(graph, "Enter Course Code: ")
+    if course is not None:
+        prerequisites = graph.list_incoming_adjacent_vertex(course)   # INCOMING edges
+        print_course_list(f"Prerequisites for {course}:", prerequisites)
+
+
+def view_unlocked_courses(graph):
+    print("\n--- View Courses Unlocked by a Course ---")
+    course = ask_for_course(graph, "Enter Course Code: ")
+    if course is not None:
+        unlocked = graph.list_outgoing_adjacent_vertex(course)        # OUTGOING edges
+        print_course_list(f"Courses unlocked by {course}:", unlocked)
+
+
+# ===========================================================================
+# 7. MAIN PROGRAM
+# ===========================================================================
+def main():
     graph = Graph()
     load_sample_data(graph)
+    print(f"Loaded {graph.vertex_count()} courses.")
 
-    print(f"Loaded {graph.vertex_count()} courses:")
-    for course in graph.get_vertices():
-        print(f"  {course} ({course.level}, Year {course.year}, {course.credit_hours} credit hours)")
+    while True:
+        print("\n==== University Course Prerequisite System ====")
+        print("1. View All Courses")
+        print("2. View Course Details")
+        print("3. View Prerequisites of a Course")
+        print("4. View Courses Unlocked by a Course")
+        print("0. Exit")
+        choice = input("Enter choice: ").strip()
 
-    print("\nPrerequisite links (prerequisite -> course it unlocks):")
-    for course in graph.get_vertices():
-        for unlocked in graph.list_outgoing_adjacent_vertex(course):
-            print(f"  {course.code} -> {unlocked.code}")
+        if choice == "1":
+            view_all_courses(graph)
+        elif choice == "2":
+            view_course_details(graph)
+        elif choice == "3":
+            view_prerequisites(graph)
+        elif choice == "4":
+            view_unlocked_courses(graph)
+        elif choice == "0":
+            print("Exiting program. Goodbye!")
+            break
+        else:
+            print("  Invalid choice. Please enter a number from the menu.")
+
+
+# Run the menu only when this file is executed directly, not when it is imported.
+if __name__ == "__main__":
+    main()
