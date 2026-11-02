@@ -16,6 +16,7 @@ Run this file to start the program.
 # ---------------------------------------------------------------------------
 MAX_COURSES = 10        # the brief allows a maximum of 10 courses
 
+
 # ===========================================================================
 # 1. GRAPH (unweighted, directed, stored as an adjacency list)
 #    It contains no course-specific code, so it can be reused for any data.
@@ -77,6 +78,21 @@ class Graph:
                 incoming.append(other_vertex)
         return incoming
 
+    def has_path(self, start, target):
+        """True if target can be reached from start by following edges.
+        Uses depth-first search: keep following edges until there is nowhere new to go."""
+        visited = []
+        to_visit = [start]
+        while len(to_visit) > 0:
+            current = to_visit.pop()                  # take the most recently added vertex
+            if current == target:
+                return True
+            if current not in visited:
+                visited.append(current)
+                for next_vertex in self.adjacency_list[current]:
+                    to_visit.append(next_vertex)
+        return False
+
 
 # ===========================================================================
 # 2. ENTITY CLASS
@@ -134,6 +150,7 @@ def load_sample_data(graph):
     graph.add_edge(cs202, cs302)
     graph.add_edge(cs301, cs303)
     graph.add_edge(cs202, cs304)
+
 
 # ===========================================================================
 # 4. HELPER FUNCTIONS
@@ -223,6 +240,99 @@ def view_unlocked_courses(graph):
 
 
 # ===========================================================================
+# 6. MENU OPTIONS - ADVANCED FEATURES
+# ===========================================================================
+def read_text(prompt):
+    """Keep asking until the user types something that is not empty."""
+    while True:
+        text = input(prompt).strip()
+        if text != "":
+            return text
+        print("  This field cannot be empty.")
+
+
+def read_int(prompt, minimum, maximum):
+    """Keep asking until the user types a whole number from minimum to maximum."""
+    while True:
+        text = input(prompt).strip()
+        if text.isdigit() and minimum <= int(text) <= maximum:
+            return int(text)
+        print(f"  Please enter a whole number from {minimum} to {maximum}.")
+
+
+def view_course_profile(graph):
+    """Core courses show every detail; elective courses show only their name."""
+    print("\n--- View Course Profile ---")
+    course = ask_for_course(graph, "Enter Course Code: ")
+    if course is None:
+        return
+    if course.is_core():
+        print_full_details(graph, course)
+    else:
+        print(f"  Course Name   : {course.name}")
+        print("  (Elective course: other details are hidden.)")
+
+
+def add_course(graph):
+    print("\n--- Add a Course ---")
+    if graph.vertex_count() >= MAX_COURSES:
+        print(f"  The system already has the maximum of {MAX_COURSES} courses.")
+        return
+
+    code = read_text("Enter Course Code: ").upper()
+    if find_course(graph, code) is not None:
+        print(f"  Course {code} already exists.")
+        return
+    name = read_text("Enter Course Name: ")
+    credit_hours = read_int("Enter Credit Hours (1-6): ", 1, 6)
+    level_choice = read_int("Enter Level (1 = Core, 2 = Elective): ", 1, 2)
+    level = "Core" if level_choice == 1 else "Elective"
+    year = read_int("Enter Year of Study (1-3): ", 1, 3)
+    description = read_text("Enter Description: ")
+
+    graph.add_vertex(Course(code, name, credit_hours, level, year, description))   # new vertex
+    print(f"  Course {code} - {name} added successfully. "
+          f"Use option 7 to give it prerequisites.")
+
+
+def add_prerequisite(graph):
+    print("\n--- Add a Prerequisite ---")
+    course = ask_for_course(graph, "Enter the Course Code that needs a prerequisite: ")
+    if course is None:
+        return
+    prerequisite = ask_for_course(graph, "Enter the Prerequisite Course Code: ")
+    if prerequisite is None:
+        return
+
+    if prerequisite == course:
+        print("  A course cannot be a prerequisite of itself.")
+    elif graph.has_edge(prerequisite, course):
+        print(f"  {prerequisite.code} is already a prerequisite of {course.code}.")
+    elif graph.has_path(course, prerequisite):
+        # course already leads to prerequisite, so an edge back would create a loop
+        print(f"  Not allowed: {prerequisite.code} already depends on {course.code}, "
+              f"so this would create a prerequisite loop.")
+    else:
+        graph.add_edge(prerequisite, course)     # new edge FROM prerequisite TO course
+        print(f"  {prerequisite.code} is now a prerequisite of {course.code}.")
+
+
+def remove_prerequisite(graph):
+    print("\n--- Remove a Prerequisite ---")
+    course = ask_for_course(graph, "Enter the Course Code: ")
+    if course is None:
+        return
+    prerequisite = ask_for_course(graph, "Enter the Prerequisite Course Code to remove: ")
+    if prerequisite is None:
+        return
+
+    if graph.remove_edge(prerequisite, course):  # remove the edge FROM prerequisite TO course
+        print(f"  {prerequisite.code} is no longer a prerequisite of {course.code}.")
+    else:
+        print(f"  {prerequisite.code} is not a prerequisite of {course.code}.")
+
+
+# ===========================================================================
 # 7. MAIN PROGRAM
 # ===========================================================================
 def main():
@@ -236,6 +346,10 @@ def main():
         print("2. View Course Details")
         print("3. View Prerequisites of a Course")
         print("4. View Courses Unlocked by a Course")
+        print("5. View Course Profile (electives show name only)")
+        print("6. Add a Course")
+        print("7. Add a Prerequisite")
+        print("8. Remove a Prerequisite")
         print("0. Exit")
         choice = input("Enter choice: ").strip()
 
@@ -247,6 +361,14 @@ def main():
             view_prerequisites(graph)
         elif choice == "4":
             view_unlocked_courses(graph)
+        elif choice == "5":
+            view_course_profile(graph)
+        elif choice == "6":
+            add_course(graph)
+        elif choice == "7":
+            add_prerequisite(graph)
+        elif choice == "8":
+            remove_prerequisite(graph)
         elif choice == "0":
             print("Exiting program. Goodbye!")
             break
