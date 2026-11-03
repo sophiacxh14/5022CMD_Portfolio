@@ -9,6 +9,7 @@ then compares the time taken in nanoseconds over several rounds.
 Run this file to start the experiment.
 """
 
+import os
 import threading
 import time
 
@@ -65,7 +66,21 @@ def run_round_with_threads():
 
 
 # ===========================================================================
-# 3. RUNNING THE EXPERIMENT
+# 3. WITHOUT MULTITHREADING (one Fibonacci number after another)
+# ===========================================================================
+def run_round_without_threads():
+    """Calculate the Fibonacci numbers one after another in the main program.
+    Returns the results and the time taken (ns)."""
+    results = []
+    start = time.perf_counter_ns()
+    for n in FIBONACCI_NUMBERS:
+        results.append(fibonacci(n))
+    elapsed = time.perf_counter_ns() - start
+    return results, elapsed
+
+
+# ===========================================================================
+# 4. RUNNING THE EXPERIMENT
 # ===========================================================================
 def run_experiment(title, run_round):
     """Run one experiment for ROUNDS rounds, print the time of each round and return the average.
@@ -87,12 +102,25 @@ def run_experiment(title, run_round):
 
 
 # ===========================================================================
-# 4. MAIN PROGRAM
+# 5. MAIN PROGRAM
 # ===========================================================================
 def main():
-    print(f"Calculating Fibonacci {FIBONACCI_NUMBERS} for {ROUNDS} rounds.")
+    print(f"Calculating Fibonacci {FIBONACCI_NUMBERS} for {ROUNDS} rounds in each experiment.")
+    print(f"This computer has {os.cpu_count()} CPU cores.")
     print("This can take several minutes, please wait...")
-    run_experiment("With Multithreading", run_round_with_threads)
+
+    threaded_average = run_experiment("With Multithreading", run_round_with_threads)
+    sequential_average = run_experiment("Without Multithreading", run_round_without_threads)
+
+    # Compare the two averages as a percentage of the time without threads
+    difference = (threaded_average - sequential_average) / sequential_average * 100
+    print("\n=== Comparison ===")
+    print(f"Average T (With Multithreading)   : {threaded_average:>18,.0f} ns")
+    print(f"Average T (Without Multithreading): {sequential_average:>18,.0f} ns")
+    if difference > 0:
+        print(f"Observation: Multithreading was {difference:.1f}% SLOWER than running without threads.")
+    else:
+        print(f"Observation: Multithreading was {-difference:.1f}% FASTER than running without threads.")
 
 
 # Run the experiment only when this file is executed directly, not when it is imported.
