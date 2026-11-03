@@ -40,13 +40,14 @@ class Graph:
 
     def get_vertices(self):
         """Return a list of every vertex, in the order they were added."""
-        return list(self.adjacency_list)
+        return list(self.adjacency_list)          # list() of a dictionary gives its keys (the vertices)
 
     def vertex_count(self):
         return len(self.adjacency_list)
 
     def has_edge(self, from_vertex, to_vertex):
         """True if there is an edge from_vertex -> to_vertex."""
+        # has_vertex() is checked first, so a missing vertex returns False instead of crashing
         return self.has_vertex(from_vertex) and to_vertex in self.adjacency_list[from_vertex]
 
     def add_edge(self, from_vertex, to_vertex):
@@ -81,8 +82,8 @@ class Graph:
     def has_path(self, start, target):
         """True if target can be reached from start by following edges.
         Uses depth-first search: keep following edges until there is nowhere new to go."""
-        visited = []
-        to_visit = [start]
+        visited = []                                  # vertices already checked, so none is checked twice
+        to_visit = [start]                            # vertices still waiting to be checked
         while len(to_visit) > 0:
             current = to_visit.pop()                  # take the most recently added vertex
             if current == target:
@@ -90,7 +91,7 @@ class Graph:
             if current not in visited:
                 visited.append(current)
                 for next_vertex in self.adjacency_list[current]:
-                    to_visit.append(next_vertex)
+                    to_visit.append(next_vertex)      # follow every outgoing edge
         return False
 
 
@@ -158,7 +159,7 @@ def load_sample_data(graph):
 def find_course(graph, code) -> Course | None:
     """Return the Course with this code (any letter case), or None if there is none."""
     for course in graph.get_vertices():
-        if course.code == code.strip().upper():
+        if course.code == code.strip().upper():  # so "cs301" and " CS301 " also match
             return course
     return None
 
@@ -179,7 +180,7 @@ def course_codes(courses):
     codes = []
     for course in courses:
         codes.append(course.code)
-    return ", ".join(codes)
+    return ", ".join(codes)        # put ", " between the codes, e.g. "CS102, CS201"
 
 
 def print_course_list(title, courses):
@@ -255,7 +256,7 @@ def read_int(prompt, minimum, maximum):
     """Keep asking until the user types a whole number from minimum to maximum."""
     while True:
         text = input(prompt).strip()
-        if text.isdigit() and minimum <= int(text) <= maximum:
+        if text.isdigit() and minimum <= int(text) <= maximum:   # a whole number inside the range
             return int(text)
         print(f"  Please enter a whole number from {minimum} to {maximum}.")
 
@@ -275,7 +276,7 @@ def view_course_profile(graph):
 
 def add_course(graph):
     print("\n--- Add a Course ---")
-    if graph.vertex_count() >= MAX_COURSES:
+    if graph.vertex_count() >= MAX_COURSES:      # checked first, so the user does not type details for nothing
         print(f"  The system already has the maximum of {MAX_COURSES} courses.")
         return
 
@@ -286,7 +287,7 @@ def add_course(graph):
     name = read_text("Enter Course Name: ")
     credit_hours = read_int("Enter Credit Hours (1-6): ", 1, 6)
     level_choice = read_int("Enter Level (1 = Core, 2 = Elective): ", 1, 2)
-    level = "Core" if level_choice == 1 else "Elective"
+    level = "Core" if level_choice == 1 else "Elective"   # choosing a number avoids spelling mistakes
     year = read_int("Enter Year of Study (1-3): ", 1, 3)
     description = read_text("Enter Description: ")
 
@@ -304,6 +305,7 @@ def add_prerequisite(graph):
     if prerequisite is None:
         return
 
+    # Read the codes once, for use in the messages below
     course_code = course.code
     prerequisite_code = prerequisite.code
 
@@ -316,7 +318,7 @@ def add_prerequisite(graph):
         print(f"  Not allowed: {prerequisite_code} already depends on {course_code}, "
               f"so this would create a prerequisite loop.")
     else:
-        graph.add_edge(prerequisite, course)  # new edge FROM prerequisite TO course
+        graph.add_edge(prerequisite, course)     # new edge FROM prerequisite TO course
         print(f"  {prerequisite_code} is now a prerequisite of {course_code}.")
 
 

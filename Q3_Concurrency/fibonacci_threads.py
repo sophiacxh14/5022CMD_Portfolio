@@ -36,7 +36,7 @@ def fibonacci(n):
 def fibonacci_task(n, index, results, start_times, end_times):
     """The work done by ONE thread: calculate F(n) and record when it started and finished.
     Each thread writes only to its own position (index) in the shared lists."""
-    start_times[index] = time.perf_counter_ns()
+    start_times[index] = time.perf_counter_ns()    # high-precision timer in nanoseconds
     results[index] = fibonacci(n)
     end_times[index] = time.perf_counter_ns()
 
@@ -48,13 +48,17 @@ def run_round_with_threads():
     results = [0] * count          # one position for each thread's answer
     start_times = [0] * count      # when each thread started
     end_times = [0] * count        # when each thread finished
+    # Each thread only writes to its own index, so threads never overwrite each other (no race condition)
 
     threads = []
     for index in range(count):
+        # target = the function the thread runs, args = the values passed to that function
         thread = threading.Thread(target=fibonacci_task,
                                   args=(FIBONACCI_NUMBERS[index], index, results, start_times, end_times))
         threads.append(thread)
 
+    # Note: because of Python's Global Interpreter Lock (GIL), only one thread runs Python code
+    # at a time, so the threads take turns (concurrent) instead of running in parallel.
     for thread in threads:
         thread.start()             # start every thread
     for thread in threads:
@@ -94,6 +98,7 @@ def run_experiment(title, run_round):
         answers = []
         for index in range(len(FIBONACCI_NUMBERS)):
             answers.append(f"Fib({FIBONACCI_NUMBERS[index]})={results[index]}")
+        # >15, right-aligns the time in 15 characters and adds commas between thousands
         print(f"Round {round_number:>2}: {', '.join(answers)} | T = {elapsed:>15,} ns")
 
     average = total / ROUNDS
@@ -106,7 +111,7 @@ def run_experiment(title, run_round):
 # ===========================================================================
 def main():
     print(f"Calculating Fibonacci {FIBONACCI_NUMBERS} for {ROUNDS} rounds in each experiment.")
-    print(f"This computer has {os.cpu_count()} CPU cores.")
+    print(f"This computer has {os.cpu_count()} CPU cores.")     # cores available for parallel work
     print("This can take several minutes, please wait...")
 
     threaded_average = run_experiment("With Multithreading", run_round_with_threads)
@@ -120,6 +125,7 @@ def main():
     if difference > 0:
         print(f"Observation: Multithreading was {difference:.1f}% SLOWER than running without threads.")
     else:
+        # -difference turns the negative percentage into a positive number for display
         print(f"Observation: Multithreading was {-difference:.1f}% FASTER than running without threads.")
 
 
